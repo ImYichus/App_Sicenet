@@ -39,6 +39,7 @@ class SNViewModel(private val snRepository: SNRepository) : ViewModel() {
     var snUiState: SNUiState by mutableStateOf(SNUiState.Idle)
         private set
 
+    // ... (Tus funciones logout y loginYConsultarPerfil se quedan IGUAL) ...
     fun logout(context: Context) {
         val prefs = PreferenceManager.getDefaultSharedPreferences(context)
         prefs.edit().remove("PREF_COOKIES").apply()
@@ -66,37 +67,29 @@ class SNViewModel(private val snRepository: SNRepository) : ViewModel() {
         }
     }
 
-    // --- FUNCIÓN ACTUALIZADA: CONSULTAR CARGA ACADÉMICA ---
+    // --- FUNCIÓN ACTUALIZADA (AHORA MÁS LIMPIA) ---
     fun consultarCargaAcademica() {
         val currentState = snUiState
+        // Solo ejecutamos si el usuario ya está logueado (Success)
         if (currentState is SNUiState.Success) {
             viewModelScope.launch(Dispatchers.IO) {
                 try {
-                    val rawResponse = snRepository.getCargaAcademica()
+                    // LLAMADA DIRECTA: El repo ya devuelve List<MateriaCarga>
+                    // Ya no hacemos limpieza ni Gson aquí
+                    val listaCarga = snRepository.getCargaAcademica()
 
-                    // 1. Limpieza profunda del JSON (quita escapes de XML)
-                    val jsonString = rawResponse
-                        .replace("&quot;", "\"")
-                        .replace("&lt;", "<")
-                        .replace("&gt;", ">")
-
-                    Log.d("SICENET_DEBUG", "JSON de Carga: $jsonString")
-
-                    val itemType = object : TypeToken<List<MateriaCarga>>() {}.type
-                    val lista: List<MateriaCarga> = Gson().fromJson(jsonString, itemType)
-
-                    // 2. Actualizamos el estado en el hilo principal (Main) para que la UI reaccione
+                    // Actualizamos UI en hilo principal
                     withContext(Dispatchers.Main) {
-                        snUiState = currentState.copy(cargaAcademica = lista)
+                        snUiState = currentState.copy(cargaAcademica = listaCarga)
                     }
                 } catch (e: Exception) {
-                    Log.e("SICENET_DEBUG", "Error Carga Académica: ${e.message}")
+                    Log.e("SICENET_DEBUG", "Error Carga Académica ViewModel: ${e.message}")
                 }
             }
         }
     }
 
-    // Se recomienda aplicar el mismo patrón de withContext(Dispatchers.Main) a los demás métodos
+    // ... (Tus otras funciones consultarKardex, etc. se quedan IGUAL) ...
     fun consultarKardex() {
         val currentState = snUiState
         if (currentState is SNUiState.Success) {
