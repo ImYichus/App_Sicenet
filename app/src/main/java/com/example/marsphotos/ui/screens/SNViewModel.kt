@@ -20,6 +20,7 @@ import com.google.gson.reflect.TypeToken
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
+import java.util.Collections.emptyList
 
 sealed interface SNUiState {
     data class Success(
@@ -89,20 +90,20 @@ class SNViewModel(private val snRepository: SNRepository) : ViewModel() {
         }
     }
 
-    // ... (Tus otras funciones consultarKardex, etc. se quedan IGUAL) ...
+
     fun consultarKardex() {
         val currentState = snUiState
         if (currentState is SNUiState.Success) {
             viewModelScope.launch(Dispatchers.IO) {
                 try {
-                    val jsonString = snRepository.getKardex().replace("&quot;", "\"")
-                    val itemType = object : TypeToken<List<KardexItem>>() {}.type
-                    val listaKardex: List<KardexItem> = Gson().fromJson(jsonString, itemType)
+                    // Ahora esto nos devuelve directamente la List<KardexItem> limpia
+                    val listaKardex = snRepository.getKardex()
+
                     withContext(Dispatchers.Main) {
                         snUiState = currentState.copy(kardex = listaKardex)
                     }
                 } catch (e: Exception) {
-                    Log.e("SICENET_DEBUG", "Error Kardex: ${e.message}")
+                    Log.e("SICENET_DEBUG", "Error Kardex en ViewModel: ${e.message}")
                 }
             }
         }

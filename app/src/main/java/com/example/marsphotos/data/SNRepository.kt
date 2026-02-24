@@ -1,6 +1,7 @@
 package com.example.marsphotos.data
 
 import android.util.Log
+import com.example.marsphotos.model.KardexItem
 import com.example.marsphotos.model.MateriaCarga // <--- IMPORTANTE: Importar el modelo
 import com.example.marsphotos.model.Usuario
 import com.example.marsphotos.network.SICENETWService
@@ -13,12 +14,13 @@ import com.example.marsphotos.network.bodyCargaAcademica
 import com.google.gson.Gson // <--- IMPORTANTE: Importar Gson
 import com.google.gson.reflect.TypeToken // <--- IMPORTANTE: Importar TypeToken
 import okhttp3.RequestBody.Companion.toRequestBody
+import java.util.Collections.emptyList
 
 interface SNRepository {
     suspend fun acceso(m: String, p: String, t: String): String
     suspend fun accesoObjeto(m: String, p: String): Usuario
     suspend fun profile(m: String, p: String): String
-    suspend fun getKardex(lineamiento: String = "1"): String
+    suspend fun getKardex(lineamiento: String = "1"): List<KardexItem>
     suspend fun getCalificacionesUnidades(): String
     suspend fun getCalificacionesFinales(modoEducativo: Int = 1): String
 
@@ -52,11 +54,25 @@ class NetworSNRepository(
         } catch (e: Exception) { throw e }
     }
 
-    override suspend fun getKardex(lineamiento: String): String {
+    override suspend fun getKardex(lineamiento: String): List<KardexItem> {
         return try {
-            val response = snApiService.getKardex(bodyKardex.format(lineamiento).toRequestBody())
-            extraerJson(response.string(), "[", "]")
-        } catch (e: Exception) { "[]" }
+            // 1. Hacemos la petición
+            val requestBody = bodyKardex.format(lineamiento).toRequestBody()
+            val response = snApiService.getKardex(requestBody)
+
+            // 2. Extraemos el JSON y limpiamos las comillas raras
+            val jsonString = extraerJson(response.string(), "[", "]").replace("&quot;", "\"")
+
+            // 3. Convertimos a Objeto aquí mismo
+            val itemType = object : TypeToken<List<KardexItem>>() {}.type
+            val listaKardex: List<KardexItem> = Gson().fromJson(jsonString, itemType)
+
+            // 4. Retornamos la lista ya convertida
+            listaKardex
+        } catch (e: Exception) {
+            Log.e("SICENET_DEBUG", "Error en Repositorio (Kardex): ${e.message}")
+            emptyList() // Si hay error, devolvemos una lista vacía en lugar del String "[]"
+        }
     }
 
     override suspend fun getCalificacionesUnidades(): String {
@@ -127,7 +143,7 @@ class DBLocalSNRepository(val apiDB : Any): SNRepository {
     override suspend fun acceso(m: String, p: String, t: String): String = ""
     override suspend fun accesoObjeto(m: String, p: String): Usuario = Usuario(matricula = "")
     override suspend fun profile(m: String, p: String): String = ""
-    override suspend fun getKardex(lineamiento: String): String = "[]"
+    override suspend fun getKardex(lineamiento: String): List<KardexItem> = emptyList()
     override suspend fun getCalificacionesUnidades(): String = "[]"
     override suspend fun getCalificacionesFinales(modoEducativo: Int): String = "[]"
 
