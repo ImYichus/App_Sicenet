@@ -1,30 +1,21 @@
 package com.example.marsphotos.data
 
 import android.util.Log
-import com.example.marsphotos.model.KardexItem
-import com.example.marsphotos.model.MateriaCarga // <--- IMPORTANTE: Importar el modelo
-import com.example.marsphotos.model.Usuario
-import com.example.marsphotos.network.SICENETWService
-import com.example.marsphotos.network.bodyAlumno
-import com.example.marsphotos.network.bodyKardex
-import com.example.marsphotos.network.bodyacceso
-import com.example.marsphotos.network.bodyCalifUnidades
-import com.example.marsphotos.network.bodyCalifFinales
-import com.example.marsphotos.network.bodyCargaAcademica
-import com.google.gson.Gson // <--- IMPORTANTE: Importar Gson
-import com.google.gson.reflect.TypeToken // <--- IMPORTANTE: Importar TypeToken
+import com.example.marsphotos.model.* // Importa todos tus modelos de datos
+import com.example.marsphotos.network.* // Importa tus variables body y el servicio
+import com.google.gson.Gson
+import com.google.gson.reflect.TypeToken
 import okhttp3.RequestBody.Companion.toRequestBody
-import java.util.Collections.emptyList
 
 interface SNRepository {
     suspend fun acceso(m: String, p: String, t: String): String
     suspend fun accesoObjeto(m: String, p: String): Usuario
-    suspend fun profile(m: String, p: String): String
-    suspend fun getKardex(lineamiento: String = "1"): List<KardexItem>
-    suspend fun getCalificacionesUnidades(): String
-    suspend fun getCalificacionesFinales(modoEducativo: Int = 1): String
 
-    // CAMBIO: Ahora devuelve la Lista de objetos, no un String
+    // --- TODOS LOS MÉTODOS AHORA DEVUELVEN OBJETOS ---
+    suspend fun profile(m: String, p: String): ProfileStudent
+    suspend fun getKardex(lineamiento: String = "1"): List<KardexItem>
+    suspend fun getCalificacionesUnidades(): List<CalificacionParcial>
+    suspend fun getCalificacionesFinales(modoEducativo: Int = 1): List<CalificacionFinal>
     suspend fun getCargaAcademica(): List<MateriaCarga>
 }
 
@@ -32,7 +23,6 @@ class NetworSNRepository(
     private val snApiService: SICENETWService
 ) : SNRepository {
 
-    // ... (Tus métodos acceso, accesoObjeto, profile, getKardex, etc. se quedan IGUAL) ...
     override suspend fun acceso(m: String, p: String, t: String): String {
         return try {
             val res = snApiService.acceso(bodyacceso.format(m, p, t).toRequestBody())
@@ -47,85 +37,90 @@ class NetworSNRepository(
 
     override suspend fun accesoObjeto(m: String, p: String): Usuario = Usuario(matricula = m)
 
-    override suspend fun profile(m: String, p: String): String {
+    override suspend fun profile(m: String, p: String): ProfileStudent {
         return try {
             val response = snApiService.getPerfil(bodyAlumno.format(m, p).toRequestBody())
-            extraerJson(response.string(), "{", "}")
-        } catch (e: Exception) { throw e }
+            val jsonCrudo = extraerJson(response.string(), "{", "}")
+            val jsonLimpio = jsonCrudo.replace("&quot;", "\"").replace("&lt;", "<").replace("&gt;", ">")
+
+            // Casteo directo en el Repositorio
+            Gson().fromJson(jsonLimpio, ProfileStudent::class.java)
+        } catch (e: Exception) {
+            Log.e("RXML", "Error en profile: ${e.message}")
+            throw e
+        }
     }
 
     override suspend fun getKardex(lineamiento: String): List<KardexItem> {
         return try {
-            // 1. Hacemos la petición
             val requestBody = bodyKardex.format(lineamiento).toRequestBody()
             val response = snApiService.getKardex(requestBody)
 
-            // 2. Extraemos el JSON y limpiamos las comillas raras
-            val jsonString = extraerJson(response.string(), "[", "]").replace("&quot;", "\"")
+            val jsonCrudo = extraerJson(response.string(), "[", "]")
+            val jsonLimpio = jsonCrudo.replace("&quot;", "\"").replace("&lt;", "<").replace("&gt;", ">")
 
-            // 3. Convertimos a Objeto aquí mismo
+            if (jsonLimpio.isBlank() || jsonLimpio == "[]") return emptyList()
+
             val itemType = object : TypeToken<List<KardexItem>>() {}.type
-            val listaKardex: List<KardexItem> = Gson().fromJson(jsonString, itemType)
-
-            // 4. Retornamos la lista ya convertida
-            listaKardex
+            Gson().fromJson(jsonLimpio, itemType)
         } catch (e: Exception) {
             Log.e("SICENET_DEBUG", "Error en Repositorio (Kardex): ${e.message}")
-            emptyList() // Si hay error, devolvemos una lista vacía en lugar del String "[]"
+            emptyList()
         }
     }
 
-    override suspend fun getCalificacionesUnidades(): String {
+    override suspend fun getCalificacionesUnidades(): List<CalificacionParcial> {
         return try {
             val response = snApiService.getCalifUnidades(bodyCalifUnidades.toRequestBody())
-            extraerJson(response.string(), "[", "]")
-        } catch (e: Exception) { "[]" }
+            val jsonCrudo = extraerJson(response.string(), "[", "]")
+            val jsonLimpio = jsonCrudo.replace("&quot;", "\"").replace("&lt;", "<").replace("&gt;", ">")
+
+            if (jsonLimpio.isBlank() || jsonLimpio == "[]") return emptyList()
+
+            val itemType = object : TypeToken<List<CalificacionParcial>>() {}.type
+            Gson().fromJson(jsonLimpio, itemType)
+        } catch (e: Exception) {
+            Log.e("RXML", "Error Unidades: ${e.message}")
+            emptyList()
+        }
     }
 
-    override suspend fun getCalificacionesFinales(modoEducativo: Int): String {
+    override suspend fun getCalificacionesFinales(modoEducativo: Int): List<CalificacionFinal> {
         return try {
             val response = snApiService.getCalifFinales(bodyCalifFinales.format(modoEducativo).toRequestBody())
-            extraerJson(response.string(), "[", "]")
-        } catch (e: Exception) { "[]" }
-    }
-    // ... (Fin de métodos anteriores)
+            val jsonCrudo = extraerJson(response.string(), "[", "]")
+            val jsonLimpio = jsonCrudo.replace("&quot;", "\"").replace("&lt;", "<").replace("&gt;", ">")
 
-    // --- ACTUALIZACIÓN CARGA ACADÉMICA (CORREGIDA PARA EL MAESTRO) ---
+            if (jsonLimpio.isBlank() || jsonLimpio == "[]") return emptyList()
+
+            val itemType = object : TypeToken<List<CalificacionFinal>>() {}.type
+            Gson().fromJson(jsonLimpio, itemType)
+        } catch (e: Exception) {
+            Log.e("RXML", "Error Finales: ${e.message}")
+            emptyList()
+        }
+    }
+
     override suspend fun getCargaAcademica(): List<MateriaCarga> {
         return try {
             val requestBody = bodyCargaAcademica.toRequestBody()
             val response = snApiService.getCargaAcademica(requestBody)
-            val xmlResponse = response.string()
 
-            Log.d("DEBUG_CARGA", "Respuesta XML Carga: $xmlResponse")
-
-            // 1. Extraemos el texto crudo del XML
-            val jsonExtraido = extraerJson(xmlResponse, "[", "]")
-
-            // 2. Limpiamos caracteres sucios (esto antes lo hacías en el ViewModel)
-            val jsonLimpio = jsonExtraido
-                .replace("&quot;", "\"")
-                .replace("&lt;", "<")
-                .replace("&gt;", ">")
+            val jsonCrudo = extraerJson(response.string(), "[", "]")
+            val jsonLimpio = jsonCrudo.replace("&quot;", "\"").replace("&lt;", "<").replace("&gt;", ">")
 
             if (jsonLimpio.isBlank() || jsonLimpio == "[]") return emptyList()
 
-            // 3. Convertimos a Objeto AQUÍ en el Repository
-            val gson = Gson()
             val itemType = object : TypeToken<List<MateriaCarga>>() {}.type
-            val lista: List<MateriaCarga> = gson.fromJson(jsonLimpio, itemType)
-
-            lista // Retornamos la lista ya hecha
-
+            Gson().fromJson(jsonLimpio, itemType)
         } catch (e: Exception) {
             Log.e("RXML", "Error Carga Académica: ${e.message}")
-            emptyList() // En caso de error, devolvemos lista vacía
+            emptyList()
         }
     }
 
     private fun extraerJson(xmlString: String, inicio: String, fin: String): String {
-        // Tu lógica de extracción se queda igual, aunque la limpieza extra la moví arriba
-        val cleanXml = xmlString // Ya limpiamos arriba en getCargaAcademica, o puedes dejarlo aquí
+        val cleanXml = xmlString
         val startIndex = cleanXml.indexOf(inicio)
         val endIndex = cleanXml.lastIndexOf(fin)
 
@@ -139,14 +134,13 @@ class NetworSNRepository(
 }
 
 class DBLocalSNRepository(val apiDB : Any): SNRepository {
-    // ... otros métodos ...
     override suspend fun acceso(m: String, p: String, t: String): String = ""
     override suspend fun accesoObjeto(m: String, p: String): Usuario = Usuario(matricula = "")
-    override suspend fun profile(m: String, p: String): String = ""
-    override suspend fun getKardex(lineamiento: String): List<KardexItem> = emptyList()
-    override suspend fun getCalificacionesUnidades(): String = "[]"
-    override suspend fun getCalificacionesFinales(modoEducativo: Int): String = "[]"
 
-    // CAMBIO: Debe devolver lista vacía, no string
+    // Devolvemos excepciones o listas vacías porque es una DB local de prueba
+    override suspend fun profile(m: String, p: String): ProfileStudent = throw NotImplementedError()
+    override suspend fun getKardex(lineamiento: String): List<KardexItem> = emptyList()
+    override suspend fun getCalificacionesUnidades(): List<CalificacionParcial> = emptyList()
+    override suspend fun getCalificacionesFinales(modoEducativo: Int): List<CalificacionFinal> = emptyList()
     override suspend fun getCargaAcademica(): List<MateriaCarga> = emptyList()
 }

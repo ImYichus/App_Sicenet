@@ -15,12 +15,9 @@ import androidx.lifecycle.viewmodel.viewModelFactory
 import com.example.marsphotos.MarsPhotosApplication
 import com.example.marsphotos.data.SNRepository
 import com.example.marsphotos.model.*
-import com.google.gson.Gson
-import com.google.gson.reflect.TypeToken
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
-import java.util.Collections.emptyList
 
 sealed interface SNUiState {
     data class Success(
@@ -40,7 +37,6 @@ class SNViewModel(private val snRepository: SNRepository) : ViewModel() {
     var snUiState: SNUiState by mutableStateOf(SNUiState.Idle)
         private set
 
-    // ... (Tus funciones logout y loginYConsultarPerfil se quedan IGUAL) ...
     fun logout(context: Context) {
         val prefs = PreferenceManager.getDefaultSharedPreferences(context)
         prefs.edit().remove("PREF_COOKIES").apply()
@@ -53,8 +49,10 @@ class SNViewModel(private val snRepository: SNRepository) : ViewModel() {
             try {
                 val loginResponse = snRepository.acceso(matricula, contrasenia, tipo)
                 if (loginResponse.contains("\"acceso\":true")) {
-                    val perfilJson = snRepository.profile(matricula, contrasenia)
-                    val perfilObjeto = Gson().fromJson(perfilJson, ProfileStudent::class.java)
+
+                    // LLAMADA LIMPIA: Ya recibimos el objeto ProfileStudent directamente
+                    val perfilObjeto = snRepository.profile(matricula, contrasenia)
+
                     withContext(Dispatchers.Main) {
                         snUiState = SNUiState.Success(data = perfilObjeto)
                     }
@@ -68,20 +66,15 @@ class SNViewModel(private val snRepository: SNRepository) : ViewModel() {
         }
     }
 
-    // --- FUNCIÓN ACTUALIZADA (AHORA MÁS LIMPIA) ---
     fun consultarCargaAcademica() {
         val currentState = snUiState
-        // Solo ejecutamos si el usuario ya está logueado (Success)
         if (currentState is SNUiState.Success) {
             viewModelScope.launch(Dispatchers.IO) {
                 try {
-                    // LLAMADA DIRECTA: El repo ya devuelve List<MateriaCarga>
-                    // Ya no hacemos limpieza ni Gson aquí
-                    val listaCarga = snRepository.getCargaAcademica()
-
-                    // Actualizamos UI en hilo principal
+                    // LLAMADA LIMPIA
+                    val lista = snRepository.getCargaAcademica()
                     withContext(Dispatchers.Main) {
-                        snUiState = currentState.copy(cargaAcademica = listaCarga)
+                        snUiState = currentState.copy(cargaAcademica = lista)
                     }
                 } catch (e: Exception) {
                     Log.e("SICENET_DEBUG", "Error Carga Académica ViewModel: ${e.message}")
@@ -90,20 +83,18 @@ class SNViewModel(private val snRepository: SNRepository) : ViewModel() {
         }
     }
 
-
     fun consultarKardex() {
         val currentState = snUiState
         if (currentState is SNUiState.Success) {
             viewModelScope.launch(Dispatchers.IO) {
                 try {
-                    // Ahora esto nos devuelve directamente la List<KardexItem> limpia
+                    // LLAMADA LIMPIA
                     val listaKardex = snRepository.getKardex()
-
                     withContext(Dispatchers.Main) {
                         snUiState = currentState.copy(kardex = listaKardex)
                     }
                 } catch (e: Exception) {
-                    Log.e("SICENET_DEBUG", "Error Kardex en ViewModel: ${e.message}")
+                    Log.e("SICENET_DEBUG", "Error Kardex ViewModel: ${e.message}")
                 }
             }
         }
@@ -114,14 +105,13 @@ class SNViewModel(private val snRepository: SNRepository) : ViewModel() {
         if (currentState is SNUiState.Success) {
             viewModelScope.launch(Dispatchers.IO) {
                 try {
-                    val jsonString = snRepository.getCalificacionesUnidades().replace("&quot;", "\"")
-                    val itemType = object : TypeToken<List<CalificacionParcial>>() {}.type
-                    val lista: List<CalificacionParcial> = Gson().fromJson(jsonString, itemType)
+                    // LLAMADA LIMPIA
+                    val lista = snRepository.getCalificacionesUnidades()
                     withContext(Dispatchers.Main) {
                         snUiState = currentState.copy(califUnidades = lista)
                     }
                 } catch (e: Exception) {
-                    Log.e("SICENET_DEBUG", "Error Unidades: ${e.message}")
+                    Log.e("SICENET_DEBUG", "Error Unidades ViewModel: ${e.message}")
                 }
             }
         }
@@ -132,14 +122,13 @@ class SNViewModel(private val snRepository: SNRepository) : ViewModel() {
         if (currentState is SNUiState.Success) {
             viewModelScope.launch(Dispatchers.IO) {
                 try {
-                    val jsonString = snRepository.getCalificacionesFinales(1).replace("&quot;", "\"")
-                    val itemType = object : TypeToken<List<CalificacionFinal>>() {}.type
-                    val lista: List<CalificacionFinal> = Gson().fromJson(jsonString, itemType)
+                    // LLAMADA LIMPIA
+                    val lista = snRepository.getCalificacionesFinales(1)
                     withContext(Dispatchers.Main) {
                         snUiState = currentState.copy(califFinales = lista)
                     }
                 } catch (e: Exception) {
-                    Log.e("SICENET_DEBUG", "Error Finales: ${e.message}")
+                    Log.e("SICENET_DEBUG", "Error Finales ViewModel: ${e.message}")
                 }
             }
         }
