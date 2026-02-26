@@ -84,7 +84,6 @@ dependencies {
 
     // Navegación (Versión estable compatible con tu SDK)
     implementation("androidx.navigation:navigation-compose:2.7.7")
-    implementation("com.google.android.libraries.ads.mobile.sdk:ads-mobile-sdk:0.24.0-beta01")
 
     // --- BASE DE DATOS ROOM ---
     val room_version = "2.6.1"

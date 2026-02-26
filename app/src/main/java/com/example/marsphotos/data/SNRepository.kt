@@ -94,7 +94,6 @@ class NetworSNRepository(
             val itemType = object : TypeToken<List<CalificacionParcial>>() {}.type
             Gson().fromJson(jsonLimpio, itemType)
         } catch (e: Exception) {
-            Log.e("RXML", "Error en parseo: ${e.message}")
             emptyList()
         }
     }
