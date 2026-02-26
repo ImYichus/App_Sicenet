@@ -1,64 +1,48 @@
-/*
- * Copyright (C) 2023 The Android Open Source Project
- *
- * Licensed under the Apache License, Version 2.0 (the "License");
- * you may not use this file except in compliance with the License.
- * You may obtain a copy of the License at
- *
- *     https://www.apache.org/licenses/LICENSE-2.0
- *
- * Unless required by applicable law or agreed to in writing, software
- * distributed under the License is distributed on an "AS IS" BASIS,
- * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
- * See the License for the specific language governing permissions and
- * limitations under the License.
- */
 package com.example.marsphotos.data
 
-import AddCookiesInterceptor
-import ReceivedCookiesInterceptor
 import android.content.Context
+import com.example.marsphotos.data.local.SicenetDatabase
+import com.example.marsphotos.network.AddCookiesInterceptor
 import com.example.marsphotos.network.MarsApiService
+import com.example.marsphotos.network.ReceivedCookiesInterceptor
 import com.example.marsphotos.network.SICENETWService
 import com.jakewharton.retrofit2.converter.kotlinx.serialization.asConverterFactory
 import kotlinx.serialization.json.Json
 import okhttp3.MediaType.Companion.toMediaType
 import okhttp3.OkHttpClient
 import retrofit2.Retrofit
+import retrofit2.converter.gson.GsonConverterFactory
 import retrofit2.converter.simplexml.SimpleXmlConverterFactory
+import java.util.concurrent.TimeUnit
 
-
-/**
- * Dependency Injection container at the application level.
- */
 interface AppContainer {
-
     val marsPhotosRepository: MarsPhotosRepository
-    val snRepository: SNRepository
+    val snRepository: SNRepository          // Red
+    val dbLocalRepository: SNRepository     // Local (Room)
 }
 
-/**
- * Implementation for the Dependency Injection container at the application level.
- *
- * Variables are initialized lazily and the same instance is shared across the whole app.
- */
-class DefaultAppContainer(applicationContext: Context) : AppContainer {
+class DefaultAppContainer(private val applicationContext: Context) : AppContainer {
+
     private val baseUrl = "https://android-kotlin-fun-mars-server.appspot.com/"
-    private val baseUrlSN = "https://sicenet.surguanajuato.tecnm.mx"
-    private var client: OkHttpClient
-    init {
-        client = OkHttpClient()
-        val builder = OkHttpClient.Builder()
+    private val baseUrlSN = "https://sicenet.surguanajuato.tecnm.mx/"
 
-        builder.addInterceptor(AddCookiesInterceptor(applicationContext)) // VERY VERY IMPORTANT
-
-        builder.addInterceptor(ReceivedCookiesInterceptor(applicationContext)) // VERY VERY IMPORTANT
-
-        client = builder.build()
+    // --- 1. BASE DE DATOS (ROOM) ---
+    private val database: SicenetDatabase by lazy {
+        SicenetDatabase.getDatabase(applicationContext)
     }
-    /**
-     * Use the Retrofit builder to build a retrofit object using a kotlinx.serialization converter
-     */
+
+    // --- 2. CLIENTE HTTP (Agregamos TIMEOUTS) ---
+    private val client: OkHttpClient by lazy {
+        OkHttpClient.Builder()
+            .addInterceptor(AddCookiesInterceptor(applicationContext))
+            .addInterceptor(ReceivedCookiesInterceptor(applicationContext))
+            .connectTimeout(30, TimeUnit.SECONDS) // 30 segundos de paciencia para conectar
+            .readTimeout(30, TimeUnit.SECONDS)    // 30 segundos para recibir datos
+            .writeTimeout(30, TimeUnit.SECONDS)   // 30 segundos para enviar datos
+            .build()
+    }
+
+    // --- 3. RETROFIT BUILDERS ---
     private val retrofit: Retrofit = Retrofit.Builder()
         .addConverterFactory(Json.asConverterFactory("application/json".toMediaType()))
         .baseUrl(baseUrl)
@@ -66,32 +50,30 @@ class DefaultAppContainer(applicationContext: Context) : AppContainer {
 
     private val retrofitSN: Retrofit = Retrofit.Builder()
         .baseUrl(baseUrlSN)
-        .addConverterFactory(SimpleXmlConverterFactory.createNonStrict())
         .client(client)
+        .addConverterFactory(GsonConverterFactory.create())
+        .addConverterFactory(SimpleXmlConverterFactory.createNonStrict())
         .build()
 
-    //bodyacceso.toRequestBody("text/xml; charset=utf-8".toMediaType())
-
-    /**
-     * Retrofit service object for creating api calls
-     */
+    // --- 4. SERVICES ---
     private val retrofitService: MarsApiService by lazy {
         retrofit.create(MarsApiService::class.java)
     }
 
-    /**
-     * Retrofit service object for creating api calls
-     */
     private val retrofitServiceSN: SICENETWService by lazy {
         retrofitSN.create(SICENETWService::class.java)
     }
+
+    // --- 5. REPOSITORIOS ---
     override val marsPhotosRepository: NetworkMarsPhotosRepository by lazy {
         NetworkMarsPhotosRepository(retrofitService)
     }
-    /**
-     * DI implementation for Mars photos repository
-     */
+
     override val snRepository: NetworSNRepository by lazy {
         NetworSNRepository(retrofitServiceSN)
+    }
+
+    override val dbLocalRepository: SNRepository by lazy {
+        DBLocalSNRepository(database.sicenetDao())
     }
 }

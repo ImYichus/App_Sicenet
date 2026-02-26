@@ -1,7 +1,7 @@
 package com.example.marsphotos.ui.screens
 
-import ads_mobile_sdk.p10
 import androidx.compose.animation.AnimatedVisibility
+import androidx.compose.animation.core.animateFloatAsState
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
@@ -9,12 +9,12 @@ import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.KeyboardArrowDown
-import androidx.compose.material.icons.filled.KeyboardArrowUp
+import androidx.compose.material.icons.filled.ExpandMore
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.rotate
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
@@ -27,21 +27,22 @@ fun CalificaionesScreen(
     calificaciones: List<CalificacionParcial>,
     modifier: Modifier = Modifier
 ) {
+    // Fondo blanco para mantener la armonía de la app
     Box(modifier = modifier.fillMaxSize().background(Color.White)) {
         if (calificaciones.isEmpty()) {
             Box(modifier = Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
-                Text(text = "No hay calificaciones disponibles", color = Color.Gray)
+                Text(text = "Sin calificaciones parciales", color = Color.Gray)
             }
         } else {
             LazyColumn(
                 contentPadding = PaddingValues(16.dp),
-                verticalArrangement = Arrangement.spacedBy(12.dp)
+                verticalArrangement = Arrangement.spacedBy(16.dp)
             ) {
                 item {
                     Text(
-                        text = "Calificaciones Parciales",
+                        text = "Parciales por Unidad",
                         style = MaterialTheme.typography.headlineMedium,
-                        color = MoradoPrincipal,
+                        color = Color(0xFF4A2C5D), // Morado Directo
                         fontWeight = FontWeight.Bold,
                         modifier = Modifier.padding(bottom = 8.dp)
                     )
@@ -57,11 +58,14 @@ fun CalificaionesScreen(
 @Composable
 fun MateriaExpandibleCard(materia: CalificacionParcial) {
     var expanded by remember { mutableStateOf(false) }
+    val rotationState by animateFloatAsState(targetValue = if (expanded) 180f else 0f)
 
     Card(
         shape = RoundedCornerShape(16.dp),
-        colors = CardDefaults.cardColors(containerColor = MoradoPrincipal),
-        elevation = CardDefaults.cardElevation(4.dp),
+        // Cambiamos a fondo blanco con borde morado suave para no saturar
+        colors = CardDefaults.cardColors(containerColor = Color.White),
+        elevation = CardDefaults.cardElevation(defaultElevation = 2.dp),
+        border = androidx.compose.foundation.BorderStroke(1.dp, Color(0xFFF3E5F5)),
         modifier = Modifier.fillMaxWidth()
     ) {
         Column {
@@ -75,44 +79,42 @@ fun MateriaExpandibleCard(materia: CalificacionParcial) {
             ) {
                 Text(
                     text = materia.materia,
-                    color = Color.White,
+                    color = Color(0xFF4A2C5D), // Morado Directo
                     fontWeight = FontWeight.Bold,
-                    fontSize = 17.sp,
+                    fontSize = 16.sp,
                     modifier = Modifier.weight(1f)
                 )
                 Icon(
-                    imageVector = if (expanded) Icons.Default.KeyboardArrowUp else Icons.Default.KeyboardArrowDown,
+                    imageVector = Icons.Default.ExpandMore,
                     contentDescription = null,
-                    tint = Color.White
+                    tint = Color(0xFF4A2C5D),
+                    modifier = Modifier.rotate(rotationState)
                 )
             }
 
             AnimatedVisibility(visible = expanded) {
                 Column(
                     modifier = Modifier
-                        .background(MoradoSuave)
-                        .padding(12.dp)
+                        .background(Color(0xFFF3E5F5).copy(alpha = 0.5f)) // Fondo morado suave sutil
+                        .padding(16.dp)
                 ) {
-                    // --- LÓGICA DINÁMICA ---
-                    // Creamos una lista de pares, pero filtramos las que vienen nulas o vacías de SICENET
                     val todasLasUnidades = listOf(
-                        "U1" to materia.p1, "U2" to materia.p2, "U3" to materia.p3,
-                        "U4" to materia.p4, "U5" to materia.p5, "U6" to materia.p6,
-                        "U7" to materia.p7, "U8" to materia.p8, "U9" to materia.p9,
-                        "U10" to materia.p10, "U11" to materia.p11, "U12" to materia.p12
-                    )
+                        "Unidad 1" to materia.p1, "Unidad 2" to materia.p2, "Unidad 3" to materia.p3,
+                        "Unidad 4" to materia.p4, "Unidad 5" to materia.p5, "Unidad 6" to materia.p6,
+                        "Unidad 7" to materia.p7, "Unidad 8" to materia.p8, "Unidad 9" to materia.p9,
+                        "Unidad 10" to materia.p10, "Unidad 11" to materia.p11, "Unidad 12" to materia.p12
+                    ).filter { !it.second.isNullOrBlank() }
 
-                    val unidadesFiltradas = todasLasUnidades.filter { !it.second.isNullOrBlank() }
-
-                    if (unidadesFiltradas.isEmpty()) {
+                    if (todasLasUnidades.isEmpty()) {
                         Text(
-                            text = "Aún no hay unidades evaluadas",
-                            color = MoradoPrincipal,
-                            modifier = Modifier.padding(8.dp),
-                            fontSize = 14.sp
+                            text = "No hay unidades registradas",
+                            color = Color.Gray,
+                            fontSize = 13.sp,
+                            modifier = Modifier.fillMaxWidth(),
+                            textAlign = TextAlign.Center
                         )
                     } else {
-                        unidadesFiltradas.forEach { (label, calif) ->
+                        todasLasUnidades.forEach { (label, calif) ->
                             UnidadRow(label, calif!!)
                         }
                     }
@@ -124,35 +126,35 @@ fun MateriaExpandibleCard(materia: CalificacionParcial) {
 
 @Composable
 fun UnidadRow(label: String, calif: String) {
-    // Limpiamos espacios y validamos si es número
-    val califLimpia = calif.trim()
-    val valorNumerico = califLimpia.toIntOrNull() ?: 0
+    val valorNumerico = calif.trim().toIntOrNull() ?: 0
     val esReprobado = valorNumerico < 70
 
     Row(
         modifier = Modifier
             .fillMaxWidth()
-            .padding(vertical = 4.dp),
+            .padding(vertical = 6.dp),
         horizontalArrangement = Arrangement.SpaceBetween,
         verticalAlignment = Alignment.CenterVertically
     ) {
         Text(
             text = label,
-            color = MoradoPrincipal,
+            color = Color(0xFF4A2C5D),
+            style = MaterialTheme.typography.bodyMedium,
             fontWeight = FontWeight.Medium
         )
 
+        // Badge estilizado para la calificación
         Surface(
-            color = if (esReprobado) Color(0xFFE57373) else Color(0xFF81C784),
-            shape = RoundedCornerShape(8.dp),
-            modifier = Modifier.width(60.dp)
+            color = if (esReprobado) Color(0xFFD32F2F) else Color(0xFF388E3C),
+            shape = RoundedCornerShape(8.dp)
         ) {
             Text(
-                text = califLimpia,
+                text = calif.trim(),
                 color = Color.White,
-                fontWeight = FontWeight.Bold,
+                fontWeight = FontWeight.Black,
+                fontSize = 14.sp,
                 textAlign = TextAlign.Center,
-                modifier = Modifier.padding(vertical = 4.dp)
+                modifier = Modifier.padding(horizontal = 12.dp, vertical = 4.dp)
             )
         }
     }

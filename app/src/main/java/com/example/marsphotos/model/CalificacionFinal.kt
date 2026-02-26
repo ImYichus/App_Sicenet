@@ -1,9 +1,14 @@
 package com.example.marsphotos.model
 
+import androidx.room.Entity
+import androidx.room.PrimaryKey
 import com.google.gson.annotations.SerializedName
 
+@Entity(tableName = "finales")
 data class CalificacionFinal(
-    @SerializedName("materia") val materia: String,
-    @SerializedName("calificacion") val calificacion: String,
-    @SerializedName("acreditacion") val acreditacion: String // Ej: "ORDINARIO"
+    @PrimaryKey(autoGenerate = true) val idLocal: Int = 0,
+    @SerializedName(value = "Materia", alternate = ["materia", "MATERIA"]) val materia: String = "",
+    @SerializedName(value = "Calificacion", alternate = ["calificacion", "CALIFICACION", "calif", "Calif"]) val calificacion: String = "",
+    @SerializedName(value = "Acreditacion", alternate = ["acreditacion", "ACREDITACION", "observaciones", "Observaciones"]) val acreditacion: String = "",
+    val lastUpdated: String = ""
 )

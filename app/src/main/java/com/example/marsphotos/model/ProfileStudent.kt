@@ -1,14 +1,13 @@
 package com.example.marsphotos.model
 
-import com.google.gson.annotations.SerializedName
-import kotlinx.serialization.Serializable
+import androidx.room.Entity
+import androidx.room.PrimaryKey
 
-
+@Entity(tableName = "perfil") // <--- ESTO ES VITAL
 data class ProfileStudent(
+    @PrimaryKey // Room necesita una llave primaria obligatoriamente
     val nombre: String,
-    @SerializedName("semActual")
-    val semestre: String,
-    val inscrito: Boolean,
+    val matricula: String,
+    val estatus: Boolean,
     val carrera: String
 )
-//5q$S_B

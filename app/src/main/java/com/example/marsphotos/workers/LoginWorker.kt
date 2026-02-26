@@ -1,32 +1,62 @@
 package com.example.marsphotos.workers
 
 import android.content.Context
+import android.util.Log
 import androidx.work.CoroutineWorker
 import androidx.work.WorkerParameters
 import androidx.work.workDataOf
 import com.example.marsphotos.MarsPhotosApplication
+import com.google.gson.Gson
+import kotlinx.coroutines.delay
 
 class LoginWorker(ctx: Context, params: WorkerParameters)
     : CoroutineWorker(ctx, params) {
 
-    // Acceso al contenedor de dependencias
     private val container = (ctx.applicationContext as MarsPhotosApplication).container
 
     override suspend fun doWork(): Result {
-        // 1. Recuperamos los datos que vienen desde el SNWMRepository
         val matricula = inputData.getString("KEY_MATRICULA") ?: ""
         val password = inputData.getString("KEY_PASSWORD") ?: ""
-        val tipo = inputData.getString("KEY_TIPO") ?: "ALUMNO" // Valor por defecto
+        val tipoUsuario = "ALUMNO"
 
-        return try {
-            // 2. Llamamos al repositorio con los 3 parámetros requeridos
-            val u = container.snRepository.acceso(matricula, password, tipo)
+        var currentAttempt = 0
+        val maxAttempts = 3 // Intentaremos 3 veces si hay error de red
 
-            // 3. Enviamos el resultado de vuelta
-            Result.success(workDataOf("u" to u))
-        } catch (e: Exception) {
-            // En caso de error en la red o SOAP
-            Result.failure(workDataOf("error" to e.localizedMessage))
+        while (currentAttempt < maxAttempts) {
+            try {
+                // 1. Intentar Acceso
+                val loginResponse = container.snRepository.acceso(matricula, password, tipoUsuario)
+                Log.d("SICENET_DEBUG", "Intento ${currentAttempt + 1} - Respuesta Login: $loginResponse")
+
+                if (loginResponse.contains("true")) {
+                    // 2. Si el login es exitoso, descargar TODO lo demás de una vez
+                    val perfil = container.snRepository.profile(matricula, password)
+                    val kardex = container.snRepository.getKardex("1")
+                    val carga = container.snRepository.getCargaAcademica()
+                    val parciales = container.snRepository.getCalificacionesUnidades()
+                    val finales = container.snRepository.getCalificacionesFinales(1)
+
+                    val gson = Gson()
+                    return Result.success(workDataOf(
+                        "KEY_PERFIL_JSON" to gson.toJson(perfil),
+                        "KEY_KARDEX_JSON" to gson.toJson(kardex),
+                        "KEY_CARGA_JSON" to gson.toJson(carga),
+                        "KEY_PARCIALES_JSON" to gson.toJson(parciales),
+                        "KEY_FINALES_JSON" to gson.toJson(finales)
+                    ))
+                } else {
+                    return Result.failure(workDataOf("error" to "Credenciales incorrectas"))
+                }
+
+            } catch (e: Exception) {
+                currentAttempt++
+                Log.e("SICENET_DEBUG", "Error de red (Intento $currentAttempt): ${e.message}")
+                if (currentAttempt < maxAttempts) {
+                    delay(2000) // Esperar 2 segundos antes de reintentar
+                }
+            }
         }
+
+        return Result.failure(workDataOf("error" to "No se pudo conectar con el servidor tras $maxAttempts intentos"))
     }
 }

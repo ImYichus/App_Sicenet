@@ -1,46 +1,54 @@
 package com.example.marsphotos.data
 
 import android.content.Context
-import androidx.work.ExistingWorkPolicy
-import androidx.work.OneTimeWorkRequest
-import androidx.work.OneTimeWorkRequestBuilder
-import androidx.work.WorkInfo
-import androidx.work.WorkManager
+import androidx.work.*
 import com.example.marsphotos.workers.LoginDBWorker
 import com.example.marsphotos.workers.LoginWorker
 import kotlinx.coroutines.flow.Flow
+import kotlinx.coroutines.flow.map
+import kotlinx.coroutines.flow.mapNotNull
 
-class WorkManagerSNWMRepository(ctx: Context): SNWMRepository {
+class WorkManagerSNWMRepository(ctx: Context) : SNWMRepository {
 
     private val workManager = WorkManager.getInstance(ctx)
+
+    // REQUERIMIENTO: Monitorear el estatus del primer Worker
     override val outputWorkInfo: Flow<WorkInfo>
-        get() = TODO("Not yet implemented")
+        get() = workManager.getWorkInfosByTagFlow("EsteQuieroMonitorear")
+            .mapNotNull { workInfoList ->
+                // El error 'List is empty' era porque usabas .first()
+                // .firstOrNull() evita que la app truene al iniciar
+                workInfoList.firstOrNull()
+            }
 
     override fun login(m: String, p: String) {
-        // Add WorkRequest to Cleanup temporary images
-        var continuation = workManager
+        // Datos de entrada para el primer Worker
+        val dataIn = workDataOf(
+            "KEY_MATRICULA" to m,
+            "KEY_PASSWORD" to p
+        )
+
+        // 1. Primer Worker: Descarga (Etiquetado para monitoreo)
+        val loginRequest = OneTimeWorkRequestBuilder<LoginWorker>()
+            .setInputData(dataIn)
+            .addTag("EsteQuieroMonitorear") // <--- El tag que pide el maestro
+            .build()
+
+        // 2. Segundo Worker: Guarda en DB
+        val saveDbRequest = OneTimeWorkRequestBuilder<LoginDBWorker>()
+            .build()
+
+        // ENCADENAMIENTO (Punto 2 de la rúbrica)
+        workManager
             .beginUniqueWork(
-                "SICENET_MANIPULATION_WORK_NAME",
+                "SincronizacionSicenet",
                 ExistingWorkPolicy.REPLACE,
-                OneTimeWorkRequestBuilder<LoginWorker>()
-                    .addTag("EsteQuieroMonitorear").build()
+                loginRequest
             )
-
-        // Add WorkRequest to blur the image
-        val wrdbWorker = OneTimeWorkRequestBuilder<LoginDBWorker>()
-
-        continuation = continuation.then(wrdbWorker.build())
-
-        // Actually start the work
-        continuation.enqueue()
-
+            .then(saveDbRequest)
+            .enqueue()
     }
 
-    override fun profile() {
-        //TODO("Not yet implemented")
-    }
-
-    override fun cargaAcademica() {
-        //TODO("Not yet implemented")
-    }
+    override fun profile() { /* Implementar similar a login */ }
+    override fun cargaAcademica() { /* Implementar similar a login */ }
 }

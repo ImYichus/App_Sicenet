@@ -1,204 +1,253 @@
 package com.example.marsphotos.ui
 
+import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.*
+import androidx.compose.foundation.shape.CircleShape
+import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.*
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
+import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.graphics.Brush
+import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.viewmodel.compose.viewModel
-import androidx.navigation.compose.NavHost
-import androidx.navigation.compose.composable
-import androidx.navigation.compose.currentBackStackEntryAsState
-import androidx.navigation.compose.rememberNavController
+import androidx.navigation.NavHostController
+import androidx.navigation.compose.*
+import androidx.work.WorkInfo
 import com.example.marsphotos.ui.screens.*
 import kotlinx.coroutines.launch
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
-fun AppSicenet(modifier: Modifier = Modifier) {
+fun AppSicenet() {
     val snViewModel: SNViewModel = viewModel(factory = SNViewModel.Factory)
     val navController = rememberNavController()
-    val context = LocalContext.current
     val scope = rememberCoroutineScope()
-    val drawerState = rememberDrawerState(initialValue = DrawerValue.Closed)
-
-    val navBackStackEntry by navController.currentBackStackEntryAsState()
-    val currentRoute = navBackStackEntry?.destination?.route
+    val drawerState = rememberDrawerState(DrawerValue.Closed)
     val uiState = snViewModel.snUiState
+    val workInfo by snViewModel.workInfo.collectAsState()
+    val context = LocalContext.current
 
-    val drawerContent = @Composable {
-        ModalDrawerSheet {
-            Spacer(modifier = Modifier.height(16.dp))
-            Text(
-                "MENÚ SICENET",
-                modifier = Modifier.padding(16.dp),
-                style = MaterialTheme.typography.titleLarge
-            )
-            Divider()
-
-            // 1. MI PERFIL
-            NavigationDrawerItem(
-                icon = { Icon(Icons.Default.Home, contentDescription = null) },
-                label = { Text("Mi Perfil") },
-                selected = currentRoute == "profile",
-                onClick = {
-                    scope.launch { drawerState.close() }
-                    navController.navigate("profile")
-                }
-            )
-
-            // 2. CARGA ACADÉMICA (Añadido)
-            NavigationDrawerItem(
-                icon = { Icon(Icons.Default.DateRange, contentDescription = null) },
-                label = { Text("Carga Académica") },
-                selected = currentRoute == "carga",
-                onClick = {
-                    scope.launch { drawerState.close() }
-                    snViewModel.consultarCargaAcademica() // Debes tener esta función en tu ViewModel
-                    navController.navigate("carga")
-                }
-            )
-
-            // 3. KARDEX
-            NavigationDrawerItem(
-                icon = { Icon(Icons.Default.List, contentDescription = null) },
-                label = { Text("Mi Kardex") },
-                selected = currentRoute == "kardex",
-                onClick = {
-                    scope.launch { drawerState.close() }
-                    snViewModel.consultarKardex()
-                    navController.navigate("kardex")
-                }
-            )
-
-            // 4. CALIFICACIONES PARCIALES
-            NavigationDrawerItem(
-                icon = { Icon(Icons.Default.Info, contentDescription = null) },
-                label = { Text("Calificaciones Parciales") },
-                selected = currentRoute == "parciales",
-                onClick = {
-                    scope.launch { drawerState.close() }
-                    snViewModel.consultarCalificacionesUnidades()
-                    navController.navigate("parciales")
-                }
-            )
-
-            // 5. CALIFICACIONES FINALES
-            NavigationDrawerItem(
-                icon = { Icon(Icons.Default.CheckCircle, contentDescription = null) },
-                label = { Text("Calificaciones Finales") },
-                selected = currentRoute == "finales",
-                onClick = {
-                    scope.launch { drawerState.close() }
-                    snViewModel.consultarCalificacionesFinales()
-                    navController.navigate("finales")
-                }
-            )
-
-            Spacer(modifier = Modifier.weight(1f))
-            Divider()
-
-            // CERRAR SESIÓN
-            NavigationDrawerItem(
-                icon = { Icon(Icons.Default.ExitToApp, contentDescription = null) },
-                label = { Text("Cerrar Sesión") },
-                selected = false,
-                onClick = {
-                    scope.launch { drawerState.close() }
-                    snViewModel.logout(context)
-                    navController.navigate("login") {
-                        popUpTo(0) { inclusive = true }
-                    }
-                }
-            )
+    // Sincronización: Cuando el login tiene éxito, cargamos la base de datos local
+    LaunchedEffect(workInfo?.id, workInfo?.state) {
+        if (workInfo?.state == WorkInfo.State.SUCCEEDED) {
+            snViewModel.cargarDatosDesdeLocal()
         }
     }
 
     if (uiState is SNUiState.Success) {
         ModalNavigationDrawer(
             drawerState = drawerState,
-            drawerContent = drawerContent
+            drawerContent = {
+                // Diseño moderno del Drawer con bordes redondeados
+                ModalDrawerSheet(
+                    drawerShape = RoundedCornerShape(topEnd = 24.dp, bottomEnd = 24.dp),
+                    drawerContainerColor = MaterialTheme.colorScheme.surface,
+                ) {
+                    // --- ENCABEZADO DEL MENÚ (HEADER) ---
+                    Box(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .height(180.dp)
+                            .background(
+                                Brush.verticalGradient(
+                                    colors = listOf(
+                                        MaterialTheme.colorScheme.primary,
+                                        MaterialTheme.colorScheme.primary.copy(alpha = 0.8f)
+                                    )
+                                )
+                            )
+                            .padding(20.dp),
+                        contentAlignment = Alignment.BottomStart
+                    ) {
+                        Column {
+                            Surface(
+                                modifier = Modifier.size(60.dp),
+                                shape = CircleShape,
+                                color = MaterialTheme.colorScheme.surface.copy(alpha = 0.2f)
+                            ) {
+                                Icon(
+                                    imageVector = Icons.Default.Person,
+                                    contentDescription = null,
+                                    tint = Color.White,
+                                    modifier = Modifier.padding(12.dp)
+                                )
+                            }
+                            Spacer(modifier = Modifier.height(12.dp))
+                            Text(
+                                text = uiState.data.nombre,
+                                style = MaterialTheme.typography.titleMedium,
+                                color = Color.White,
+                                fontWeight = FontWeight.Bold
+                            )
+                            Text(
+                                text = uiState.data.matricula,
+                                style = MaterialTheme.typography.bodySmall,
+                                color = Color.White.copy(alpha = 0.8f)
+                            )
+                        }
+                    }
+
+                    Spacer(modifier = Modifier.height(12.dp))
+
+                    // --- SECCIÓN ACADÉMICA ---
+                    Text(
+                        text = "ACADÉMICO",
+                        modifier = Modifier.padding(horizontal = 28.dp, vertical = 8.dp),
+                        style = MaterialTheme.typography.labelMedium,
+                        color = MaterialTheme.colorScheme.primary,
+                        fontWeight = FontWeight.Bold
+                    )
+
+                    DrawerMenuItem(
+                        label = "Mi Perfil",
+                        icon = Icons.Default.AccountCircle,
+                        onClick = {
+                            scope.launch { drawerState.close() }
+                            navController.navigate("profile")
+                        }
+                    )
+
+                    DrawerMenuItem(
+                        label = "Horario / Carga",
+                        icon = Icons.Default.DateRange,
+                        onClick = {
+                            scope.launch { drawerState.close() }
+                            snViewModel.consultarCargaAcademica()
+                            navController.navigate("carga")
+                        }
+                    )
+
+                    DrawerMenuItem(
+                        label = "Kardex",
+                        icon = Icons.Default.HistoryEdu,
+                        onClick = {
+                            scope.launch { drawerState.close() }
+                            snViewModel.consultarKardex()
+                            navController.navigate("kardex")
+                        }
+                    )
+
+                    Divider(modifier = Modifier.padding(horizontal = 28.dp, vertical = 8.dp), thickness = 0.5.dp)
+
+                    // --- SECCIÓN CALIFICACIONES ---
+                    Text(
+                        text = "EVALUACIONES",
+                        modifier = Modifier.padding(horizontal = 28.dp, vertical = 8.dp),
+                        style = MaterialTheme.typography.labelMedium,
+                        color = MaterialTheme.colorScheme.primary,
+                        fontWeight = FontWeight.Bold
+                    )
+
+                    DrawerMenuItem(
+                        label = "Parciales",
+                        icon = Icons.Default.Spellcheck,
+                        onClick = {
+                            scope.launch { drawerState.close() }
+                            snViewModel.consultarCalificacionesUnidades()
+                            navController.navigate("parciales")
+                        }
+                    )
+
+                    DrawerMenuItem(
+                        label = "Finales",
+                        icon = Icons.Default.AssignmentTurnedIn,
+                        onClick = {
+                            scope.launch { drawerState.close() }
+                            snViewModel.consultarCalificacionesFinales()
+                            navController.navigate("finales")
+                        }
+                    )
+
+                    Spacer(modifier = Modifier.weight(1f)) // Empuja el logout al fondo
+
+                    // --- CERRAR SESIÓN ---
+                    NavigationDrawerItem(
+                        label = { Text("Cerrar Sesión", fontWeight = FontWeight.Bold) },
+                        selected = false,
+                        icon = { Icon(Icons.Default.Logout, contentDescription = null, tint = MaterialTheme.colorScheme.error) },
+                        colors = NavigationDrawerItemDefaults.colors(unselectedContainerColor = Color.Transparent),
+                        modifier = Modifier.padding(horizontal = 12.dp, vertical = 16.dp),
+                        onClick = {
+                            snViewModel.logout(context)
+                            navController.navigate("login") { popUpTo(0) { inclusive = true } }
+                        }
+                    )
+                }
+            }
         ) {
             Scaffold(
                 topBar = {
                     CenterAlignedTopAppBar(
-                        title = { Text("SICENET") },
+                        title = { Text("SICENET", fontWeight = FontWeight.Black) },
                         navigationIcon = {
                             IconButton(onClick = { scope.launch { drawerState.open() } }) {
-                                Icon(Icons.Default.Menu, contentDescription = "Menu")
+                                Icon(Icons.Default.MenuOpen, null)
                             }
                         }
                     )
                 }
-            ) { paddingValues ->
-                ContenidoNavegacion(navController, snViewModel, uiState, Modifier.padding(paddingValues))
+            ) { padding ->
+                ContenidoNavegacion(navController, snViewModel, uiState, Modifier.padding(padding))
             }
         }
     } else {
-        Scaffold { paddingValues ->
-            ContenidoNavegacion(navController, snViewModel, uiState, Modifier.padding(paddingValues))
+        // Vista para Login o Pantalla de Carga
+        Scaffold { padding ->
+            ContenidoNavegacion(navController, snViewModel, uiState, Modifier.padding(padding))
         }
     }
 }
 
 @Composable
+fun DrawerMenuItem(label: String, icon: ImageVector, onClick: () -> Unit) {
+    NavigationDrawerItem(
+        label = { Text(label, fontWeight = FontWeight.Medium) },
+        selected = false,
+        icon = { Icon(icon, contentDescription = null, modifier = Modifier.size(22.dp)) },
+        modifier = Modifier.padding(horizontal = 12.dp, vertical = 2.dp),
+        onClick = onClick,
+        colors = NavigationDrawerItemDefaults.colors(
+            unselectedContainerColor = Color.Transparent,
+            unselectedIconColor = MaterialTheme.colorScheme.onSurfaceVariant
+        )
+    )
+}
+
+@Composable
 fun ContenidoNavegacion(
-    navController: androidx.navigation.NavHostController,
+    navController: NavHostController,
     snViewModel: SNViewModel,
     uiState: SNUiState,
-    modifier: Modifier = Modifier
+    modifier: Modifier
 ) {
-    NavHost(
-        navController = navController,
-        startDestination = "login",
-        modifier = modifier
-    ) {
+    NavHost(navController, startDestination = "login", modifier = modifier) {
         composable("login") {
             HomeScreen(
                 snUiState = uiState,
-                onLoginClick = { mat, pass, tipo -> snViewModel.loginYConsultarPerfil(mat, pass, tipo) },
+                onLoginClick = { m, p, t -> snViewModel.loginYConsultarPerfil(m, p, t) },
                 onKardexClick = {},
                 onLogoutClick = {}
             )
+            // Navegación automática cuando uiState pasa a Success
             LaunchedEffect(uiState) {
                 if (uiState is SNUiState.Success) {
-                    navController.navigate("profile") { popUpTo("login") { inclusive = true } }
+                    navController.navigate("profile") {
+                        popUpTo("login") { inclusive = true }
+                    }
                 }
             }
         }
-
-        composable("profile") {
-            if (uiState is SNUiState.Success) {
-                ProfileScreen(student = uiState.data)
-            }
-        }
-
-        // PANTALLA CARGA ACADÉMICA (Añadido)
-        composable("carga") {
-            if (uiState is SNUiState.Success) {
-                CargaAcademicaScreen(carga = uiState.cargaAcademica)
-            }
-        }
-
-        composable("kardex") {
-            if (uiState is SNUiState.Success) {
-                KardexScreen(kardexList = uiState.kardex)
-            }
-        }
-
-        composable("parciales") {
-            if (uiState is SNUiState.Success) {
-                CalificaionesScreen(calificaciones = uiState.califUnidades)
-            }
-        }
-
-        composable("finales") {
-            if (uiState is SNUiState.Success) {
-                FinalesScreen(finales = uiState.califFinales)
-            }
-        }
+        composable("profile") { if (uiState is SNUiState.Success) ProfileScreen(uiState.data) }
+        composable("carga") { if (uiState is SNUiState.Success) CargaAcademicaScreen(uiState.cargaAcademica) }
+        composable("kardex") { if (uiState is SNUiState.Success) KardexScreen(uiState.kardex) }
+        composable("parciales") { if (uiState is SNUiState.Success) CalificaionesScreen(uiState.califUnidades) }
+        composable("finales") { if (uiState is SNUiState.Success) FinalesScreen(uiState.califFinales) }
     }
 }

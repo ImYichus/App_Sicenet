@@ -1,27 +1,37 @@
+package com.example.marsphotos.network
+
 import android.content.Context
 import android.preference.PreferenceManager
 import okhttp3.Interceptor
 import okhttp3.Response
 import java.io.IOException
 
-class ReceivedCookiesInterceptor // AddCookiesInterceptor()
-    (private val context: Context) : Interceptor {
+class ReceivedCookiesInterceptor(private val context: Context) : Interceptor {
     @Throws(IOException::class)
     override fun intercept(chain: Interceptor.Chain): Response {
         val originalResponse: Response = chain.proceed(chain.request())
-        if (!originalResponse.headers("Set-Cookie").isEmpty()) {
-            val cookies = PreferenceManager.getDefaultSharedPreferences(
-                context
-            ).getStringSet("PREF_COOKIES", HashSet()) as HashSet<String>?
-            for (header in originalResponse.headers("Set-Cookie")) {
-                cookies!!.add(header)
+        val cookieHeaders = originalResponse.headers("Set-Cookie")
+
+        if (cookieHeaders.isNotEmpty()) {
+            val preferences = PreferenceManager.getDefaultSharedPreferences(context)
+            val existingCookies = preferences.getStringSet("PREF_COOKIES", mutableSetOf()) ?: mutableSetOf()
+
+            // Creamos una copia para poder modificar sin afectar la referencia original
+            val updatedCookies = HashSet<String>(existingCookies)
+
+            for (header in cookieHeaders) {
+                val cookieName = header.substringBefore("=")
+                // Eliminamos la versión vieja de esta cookie si ya existía para no duplicar
+                updatedCookies.removeAll { it.startsWith("$cookieName=") }
+                // Agregamos la nueva versión que mandó el servidor
+                updatedCookies.add(header)
             }
-            val memes = PreferenceManager.getDefaultSharedPreferences(
-                context
-            ).edit()
-            memes.putStringSet("PREF_COOKIES", cookies).apply()
-            memes.commit()
+
+            preferences.edit()
+                .putStringSet("PREF_COOKIES", updatedCookies)
+                .apply()
         }
+
         return originalResponse
     }
 }

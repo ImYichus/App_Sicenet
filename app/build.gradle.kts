@@ -2,6 +2,7 @@ plugins {
     id("com.android.application")
     id("org.jetbrains.kotlin.android")
     id("org.jetbrains.kotlin.plugin.serialization") version "1.9.22"
+    id("com.google.devtools.ksp") version "1.9.22-1.0.17"
 }
 
 android {
@@ -19,6 +20,12 @@ android {
         vectorDrawables {
             useSupportLibrary = true
         }
+
+        // Bloque KSP movido correctamente aquí adentro para los argumentos
+        //noinspection WrongGradleMethod
+        ksp {
+            arg("room.schemaLocation", "$projectDir/schemas")
+        }
     }
 
     buildTypes {
@@ -30,20 +37,26 @@ android {
             )
         }
     }
+
     compileOptions {
-        sourceCompatibility = JavaVersion.VERSION_1_8
-        targetCompatibility = JavaVersion.VERSION_1_8
+        // ACTUALIZADO: Ambos deben ser VERSION_17 para evitar el error de "Inconsistent JVM-target"
+        sourceCompatibility = JavaVersion.VERSION_17
+        targetCompatibility = JavaVersion.VERSION_17
     }
+
     kotlinOptions {
-        jvmTarget = "1.8"
+        // ACTUALIZADO: Debe coincidir con las compileOptions
+        jvmTarget = "17"
     }
+
     buildFeatures {
         compose = true
     }
+
     composeOptions {
-        // Correcto para Kotlin 1.9.22
         kotlinCompilerExtensionVersion = "1.5.10"
     }
+
     packaging {
         resources {
             excludes += "/META-INF/{AL2.0,LGPL2.1}"
@@ -51,22 +64,25 @@ android {
     }
 }
 
+// Configuración adicional para asegurar que KSP use la versión correcta de Java
+// (Añadir esto si el error de JVM-target persiste)
+kotlin {
+    jvmToolchain(17)
+}
+
 dependencies {
     // GSON
     implementation("com.google.code.gson:gson:2.10.1")
 
     // --- JETPACK COMPOSE BOM ---
-    // Usamos una versión sólida del BOM
     implementation(platform("androidx.compose:compose-bom:2024.02.00"))
     implementation("androidx.activity:activity-compose:1.8.2")
-
-    // IMPORTANTE: Solo estas líneas de UI.
-    // He quitado "material3-android:1.4.0" porque causaba el duplicado
+    implementation("com.squareup.retrofit2:converter-gson:2.9.0")
     implementation("androidx.compose.ui:ui")
     implementation("androidx.compose.ui:ui-graphics")
     implementation("androidx.compose.ui:ui-tooling-preview")
-    implementation("androidx.compose.material3:material3") // La versión la dicta el BOM automáticamente
-
+    implementation("androidx.compose.material3:material3")
+    implementation("androidx.compose.material:material-icons-extended")
     // Ciclo de vida y ViewModel
     implementation("androidx.core:core-ktx:1.12.0")
     implementation("androidx.lifecycle:lifecycle-runtime-ktx:2.7.0")
@@ -82,16 +98,15 @@ dependencies {
     implementation("io.coil-kt:coil-compose:2.5.0")
     implementation("androidx.work:work-runtime-ktx:2.9.0")
 
-    // Navegación (Versión estable compatible con tu SDK)
+    // Navegación
     implementation("androidx.navigation:navigation-compose:2.7.7")
 
     // --- BASE DE DATOS ROOM ---
     val room_version = "2.6.1"
     implementation("androidx.room:room-runtime:$room_version")
     implementation("androidx.room:room-ktx:$room_version")
-    // Cambiado a kapt o annotationProcessor según tu setup,
-    // pero si no usas KSP, annotationProcessor está bien:
-    annotationProcessor("androidx.room:room-compiler:$room_version")
+    // Corregido: KSP ahora funcionará porque las versiones de Java están alineadas
+    ksp("androidx.room:room-compiler:$room_version")
 
     // Testing
     testImplementation("junit:junit:4.13.2")
