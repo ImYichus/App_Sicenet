@@ -28,9 +28,10 @@ fun ProfileScreen(
     modifier: Modifier = Modifier
 ) {
     val scrollState = rememberScrollState()
-    val primaryColor = MaterialTheme.colorScheme.primary
+    // Usamos valor directo para mantener la armonía
+    val primaryColor = Color(0xFF4A2C5D)
 
-    Box(modifier = modifier.fillMaxSize().background(MaterialTheme.colorScheme.surface)) {
+    Box(modifier = modifier.fillMaxSize().background(Color.White)) {
         // --- FONDO DECORATIVO SUPERIOR ---
         Box(
             modifier = Modifier
@@ -56,9 +57,9 @@ fun ProfileScreen(
             Surface(
                 modifier = Modifier.size(140.dp),
                 shape = CircleShape,
-                color = MaterialTheme.colorScheme.surface,
+                color = Color.White,
                 shadowElevation = 10.dp,
-                border = androidx.compose.foundation.BorderStroke(4.dp, MaterialTheme.colorScheme.surface)
+                border = androidx.compose.foundation.BorderStroke(4.dp, Color.White)
             ) {
                 Box(contentAlignment = Alignment.Center) {
                     Icon(
@@ -78,11 +79,11 @@ fun ProfileScreen(
                 style = MaterialTheme.typography.headlineMedium,
                 fontWeight = FontWeight.ExtraBold,
                 textAlign = TextAlign.Center,
-                color = MaterialTheme.colorScheme.onSurface
+                color = primaryColor
             )
 
             Surface(
-                color = MaterialTheme.colorScheme.secondaryContainer,
+                color = Color(0xFFF3E5F5),
                 shape = RoundedCornerShape(20.dp),
                 modifier = Modifier.padding(top = 8.dp)
             ) {
@@ -90,7 +91,7 @@ fun ProfileScreen(
                     text = student.matricula,
                     modifier = Modifier.padding(horizontal = 16.dp, vertical = 6.dp),
                     style = MaterialTheme.typography.labelLarge,
-                    color = MaterialTheme.colorScheme.onSecondaryContainer,
+                    color = primaryColor,
                     fontWeight = FontWeight.Bold
                 )
             }
@@ -101,9 +102,9 @@ fun ProfileScreen(
             Card(
                 modifier = Modifier.fillMaxWidth(),
                 shape = RoundedCornerShape(28.dp),
-                colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface),
+                colors = CardDefaults.cardColors(containerColor = Color.White),
                 elevation = CardDefaults.cardElevation(defaultElevation = 2.dp),
-                border = androidx.compose.foundation.BorderStroke(1.dp, MaterialTheme.colorScheme.outlineVariant)
+                border = androidx.compose.foundation.BorderStroke(1.dp, Color(0xFFF3E5F5))
             ) {
                 Column(modifier = Modifier.padding(24.dp)) {
                     Text(
@@ -118,28 +119,36 @@ fun ProfileScreen(
                         label = "Carrera",
                         value = student.carrera,
                         icon = Icons.Default.School,
-                        iconColor = Color(0xFF673AB7) // Morado elegante
+                        iconColor = primaryColor
                     )
 
-                    Divider(modifier = Modifier.padding(vertical = 16.dp), thickness = 0.5.dp)
+                    Divider(modifier = Modifier.padding(vertical = 16.dp), thickness = 0.5.dp, color = Color(0xFFF3E5F5))
 
-                    // Estatus dinámico con estilo de "Píldora"
-                    val statusColor = if (student.estatus) Color(0xFF2E7D32) else Color(0xFFD32F2F)
+                    // --- LÓGICA DE ESTATUS CORREGIDA ---
+                    // Convertimos lo que llegue ("VI", "VIGENTE", "ACT", etc.) a mayúsculas para evaluarlo
+                    val estatusSicenet = student.estatus?.uppercase()?.trim() ?: ""
+                    val isActivo = estatusSicenet in listOf("VI", "VIGENTE", "ACT", "ACTIVO", "INSCRITO", "TRUE", "1")
+
+                    val statusColor = if (isActivo) Color(0xFF2E7D32) else Color(0xFFD32F2F)
+                    val statusText = if (isActivo) "VIGENTE / ACTIVO" else "INACTIVO"
 
                     Row(
                         verticalAlignment = Alignment.CenterVertically,
                         modifier = Modifier.fillMaxWidth()
                     ) {
-                        StatusIcon(icon = if (student.estatus) Icons.Default.Verified else Icons.Default.Warning, color = statusColor)
+                        StatusIcon(
+                            icon = if (isActivo) Icons.Default.Verified else Icons.Default.Warning,
+                            color = statusColor
+                        )
                         Spacer(modifier = Modifier.width(16.dp))
                         Column {
                             Text(
                                 text = "Estatus",
                                 style = MaterialTheme.typography.labelMedium,
-                                color = MaterialTheme.colorScheme.outline
+                                color = Color.Gray
                             )
                             Text(
-                                text = if (student.estatus) "VIGENTE / ACTIVO" else "INACTIVO",
+                                text = statusText,
                                 style = MaterialTheme.typography.bodyLarge,
                                 fontWeight = FontWeight.ExtraBold,
                                 color = statusColor
@@ -155,7 +164,7 @@ fun ProfileScreen(
             Text(
                 text = "Información obtenida de SICENET Oficial",
                 style = MaterialTheme.typography.labelSmall,
-                color = MaterialTheme.colorScheme.outline
+                color = Color.Gray
             )
             Spacer(modifier = Modifier.height(40.dp))
         }
@@ -195,13 +204,14 @@ fun ModernInfoRow(label: String, value: String, icon: ImageVector, iconColor: Co
             Text(
                 text = label,
                 style = MaterialTheme.typography.labelMedium,
-                color = MaterialTheme.colorScheme.outline
+                color = Color.Gray
             )
             Text(
                 text = value,
                 style = MaterialTheme.typography.bodyLarge,
                 fontWeight = FontWeight.Bold,
-                lineHeight = 20.sp
+                lineHeight = 20.sp,
+                color = Color(0xFF4A2C5D)
             )
         }
     }

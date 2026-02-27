@@ -36,9 +36,9 @@ class DefaultAppContainer(private val applicationContext: Context) : AppContaine
         OkHttpClient.Builder()
             .addInterceptor(AddCookiesInterceptor(applicationContext))
             .addInterceptor(ReceivedCookiesInterceptor(applicationContext))
-            .connectTimeout(30, TimeUnit.SECONDS) // 30 segundos de paciencia para conectar
-            .readTimeout(30, TimeUnit.SECONDS)    // 30 segundos para recibir datos
-            .writeTimeout(30, TimeUnit.SECONDS)   // 30 segundos para enviar datos
+            .connectTimeout(60, TimeUnit.SECONDS) // 30 segundos de paciencia para conectar
+            .readTimeout(60, TimeUnit.SECONDS)    // 30 segundos para recibir datos
+            .writeTimeout(60, TimeUnit.SECONDS)   // 30 segundos para enviar datos
             .build()
     }
 

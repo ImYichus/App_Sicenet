@@ -8,6 +8,6 @@ data class ProfileStudent(
     @PrimaryKey // Room necesita una llave primaria obligatoriamente
     val nombre: String,
     val matricula: String,
-    val estatus: Boolean,
+    val estatus: String,
     val carrera: String
 )

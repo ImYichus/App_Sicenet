@@ -58,8 +58,8 @@ fun AppSicenet() {
                             .background(
                                 Brush.verticalGradient(
                                     colors = listOf(
-                                        MaterialTheme.colorScheme.primary,
-                                        MaterialTheme.colorScheme.primary.copy(alpha = 0.8f)
+                                        Color(0xFF4A2C5D), // Morado Principal
+                                        Color(0xFF4A2C5D).copy(alpha = 0.8f)
                                     )
                                 )
                             )
@@ -70,7 +70,7 @@ fun AppSicenet() {
                             Surface(
                                 modifier = Modifier.size(60.dp),
                                 shape = CircleShape,
-                                color = MaterialTheme.colorScheme.surface.copy(alpha = 0.2f)
+                                color = Color.White.copy(alpha = 0.2f)
                             ) {
                                 Icon(
                                     imageVector = Icons.Default.Person,
@@ -81,7 +81,7 @@ fun AppSicenet() {
                             }
                             Spacer(modifier = Modifier.height(12.dp))
                             Text(
-                                text = uiState.data.nombre,
+                                text = uiState.data.nombre.ifBlank { "Estudiante" },
                                 style = MaterialTheme.typography.titleMedium,
                                 color = Color.White,
                                 fontWeight = FontWeight.Bold
@@ -94,14 +94,66 @@ fun AppSicenet() {
                         }
                     }
 
-                    Spacer(modifier = Modifier.height(12.dp))
+                    // --- ETIQUETA DE ÚLTIMA ACTUALIZACIÓN (REQUERIMIENTO 2.b) EN EL MENÚ ---
+                    if (uiState.esOffline && uiState.ultimaSincro.isNotBlank()) {
+                        Surface(
+                            color = Color(0xFFFFF3E0), // Naranja suave de advertencia
+                            modifier = Modifier.fillMaxWidth()
+                        ) {
+                            Row(
+                                modifier = Modifier.padding(horizontal = 20.dp, vertical = 8.dp),
+                                verticalAlignment = Alignment.CenterVertically
+                            ) {
+                                Icon(
+                                    imageVector = Icons.Default.CloudOff,
+                                    contentDescription = "Sin conexión",
+                                    tint = Color(0xFFE65100),
+                                    modifier = Modifier.size(16.dp)
+                                )
+                                Spacer(modifier = Modifier.width(8.dp))
+                                Text(
+                                    text = "Modo Offline - Datos del:\n${uiState.ultimaSincro}",
+                                    style = MaterialTheme.typography.labelSmall,
+                                    color = Color(0xFFE65100),
+                                    fontWeight = FontWeight.Medium
+                                )
+                            }
+                        }
+                    } else if (uiState.ultimaSincro.isNotBlank()) {
+                        // Si hay internet pero queremos mostrar cuándo fue la última vez que se guardó
+                        Surface(
+                            color = Color(0xFFE8F5E9), // Verde suave de éxito
+                            modifier = Modifier.fillMaxWidth()
+                        ) {
+                            Row(
+                                modifier = Modifier.padding(horizontal = 20.dp, vertical = 8.dp),
+                                verticalAlignment = Alignment.CenterVertically
+                            ) {
+                                Icon(
+                                    imageVector = Icons.Default.CloudDone,
+                                    contentDescription = "Sincronizado",
+                                    tint = Color(0xFF2E7D32),
+                                    modifier = Modifier.size(16.dp)
+                                )
+                                Spacer(modifier = Modifier.width(8.dp))
+                                Text(
+                                    text = "Actualizado: ${uiState.ultimaSincro}",
+                                    style = MaterialTheme.typography.labelSmall,
+                                    color = Color(0xFF2E7D32),
+                                    fontWeight = FontWeight.Medium
+                                )
+                            }
+                        }
+                    }
+
+                    Spacer(modifier = Modifier.height(8.dp))
 
                     // --- SECCIÓN ACADÉMICA ---
                     Text(
                         text = "ACADÉMICO",
                         modifier = Modifier.padding(horizontal = 28.dp, vertical = 8.dp),
                         style = MaterialTheme.typography.labelMedium,
-                        color = MaterialTheme.colorScheme.primary,
+                        color = Color(0xFF4A2C5D), // Morado Principal
                         fontWeight = FontWeight.Bold
                     )
 
@@ -134,14 +186,14 @@ fun AppSicenet() {
                         }
                     )
 
-                    Divider(modifier = Modifier.padding(horizontal = 28.dp, vertical = 8.dp), thickness = 0.5.dp)
+                    Divider(modifier = Modifier.padding(horizontal = 28.dp, vertical = 8.dp), thickness = 0.5.dp, color = Color(0xFFF3E5F5))
 
                     // --- SECCIÓN CALIFICACIONES ---
                     Text(
                         text = "EVALUACIONES",
                         modifier = Modifier.padding(horizontal = 28.dp, vertical = 8.dp),
                         style = MaterialTheme.typography.labelMedium,
-                        color = MaterialTheme.colorScheme.primary,
+                        color = Color(0xFF4A2C5D), // Morado Principal
                         fontWeight = FontWeight.Bold
                     )
 
@@ -175,6 +227,7 @@ fun AppSicenet() {
                         colors = NavigationDrawerItemDefaults.colors(unselectedContainerColor = Color.Transparent),
                         modifier = Modifier.padding(horizontal = 12.dp, vertical = 16.dp),
                         onClick = {
+                            scope.launch { drawerState.close() } // Cierra el menú al salir
                             snViewModel.logout(context)
                             navController.navigate("login") { popUpTo(0) { inclusive = true } }
                         }
@@ -185,16 +238,52 @@ fun AppSicenet() {
             Scaffold(
                 topBar = {
                     CenterAlignedTopAppBar(
-                        title = { Text("SICENET", fontWeight = FontWeight.Black) },
+                        title = { Text("SICENET", fontWeight = FontWeight.Black, color = Color(0xFF4A2C5D)) },
                         navigationIcon = {
                             IconButton(onClick = { scope.launch { drawerState.open() } }) {
-                                Icon(Icons.Default.MenuOpen, null)
+                                Icon(Icons.Default.MenuOpen, contentDescription = "Menú", tint = Color(0xFF4A2C5D))
                             }
                         }
                     )
                 }
             ) { padding ->
-                ContenidoNavegacion(navController, snViewModel, uiState, Modifier.padding(padding))
+                // --- AQUÍ ESTÁ EL TRUCO GLOBAL PARA MOSTRARLO EN TODAS LAS PANTALLAS ---
+                Column(
+                    modifier = Modifier
+                        .fillMaxSize()
+                        .padding(padding)
+                ) {
+                    // ETIQUETA VISIBLE EN TODAS LAS PANTALLAS (REQUERIMIENTO 2.b)
+                    if (uiState.esOffline && uiState.ultimaSincro.isNotBlank()) {
+                        Surface(
+                            color = Color(0xFFFFF3E0), // Naranja suave para que resalte
+                            modifier = Modifier.fillMaxWidth()
+                        ) {
+                            Row(
+                                modifier = Modifier.padding(horizontal = 16.dp, vertical = 8.dp),
+                                horizontalArrangement = Arrangement.Center,
+                                verticalAlignment = Alignment.CenterVertically
+                            ) {
+                                Icon(
+                                    imageVector = Icons.Default.CloudOff,
+                                    contentDescription = null,
+                                    tint = Color(0xFFE65100),
+                                    modifier = Modifier.size(18.dp)
+                                )
+                                Spacer(modifier = Modifier.width(8.dp))
+                                Text(
+                                    text = "Sin internet. Datos guardados el: ${uiState.ultimaSincro}",
+                                    style = MaterialTheme.typography.labelSmall,
+                                    color = Color(0xFFE65100),
+                                    fontWeight = FontWeight.Bold
+                                )
+                            }
+                        }
+                    }
+
+                    // El contenido de la pantalla (Kardex, Parciales, etc.)
+                    ContenidoNavegacion(navController, snViewModel, uiState, Modifier.weight(1f))
+                }
             }
         }
     } else {
@@ -215,7 +304,7 @@ fun DrawerMenuItem(label: String, icon: ImageVector, onClick: () -> Unit) {
         onClick = onClick,
         colors = NavigationDrawerItemDefaults.colors(
             unselectedContainerColor = Color.Transparent,
-            unselectedIconColor = MaterialTheme.colorScheme.onSurfaceVariant
+            unselectedIconColor = Color.DarkGray
         )
     )
 }

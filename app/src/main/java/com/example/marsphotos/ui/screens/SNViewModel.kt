@@ -36,8 +36,8 @@ sealed interface SNUiState {
         val califUnidades: List<CalificacionParcial> = emptyList(),
         val califFinales: List<CalificacionFinal> = emptyList(),
         val cargaAcademica: List<MateriaCarga> = emptyList(),
-        val esOffline: Boolean = false, // Para cumplir Requerimiento 2.b
-        val ultimaSincro: String = ""   // Para la etiqueta de fecha
+        val esOffline: Boolean = false,
+        val ultimaSincro: String = ""
     ) : SNUiState
     object Error : SNUiState
     object Loading : SNUiState
@@ -119,9 +119,6 @@ class SNViewModel(
             }
         }
     }
-
-    // --- REQUERIMIENTO 2.b: Lógica Offline-First ---
-
     fun consultarKardex() {
         val currentState = snUiState
         if (currentState is SNUiState.Success) {
@@ -190,7 +187,11 @@ class SNViewModel(
                 if (hayInternet(getApplication())) {
                     try {
                         val lista = withContext(Dispatchers.IO) { snRepository.getCalificacionesFinales(1) }
-                        dbRepository.insertFinales(lista)
+
+                        if (lista.isNotEmpty()) {
+                            withContext(Dispatchers.IO) { dbRepository.insertFinales(lista) }
+                        }
+
                         snUiState = currentState.copy(califFinales = lista, esOffline = false)
                     } catch (e: Exception) {
                         Log.e("SICENET_DEBUG", "Error Finales API: ${e.message}")

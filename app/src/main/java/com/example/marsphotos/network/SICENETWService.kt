@@ -88,43 +88,43 @@ val bodyVacio = """
 interface SICENETWService {
 
     @Headers(
-        "Content-Type: text/xml;charset=utf-8",
-        "SOAPAction: http://tempuri.org/accesoLogin"
+        "Content-Type: text/xml; charset=utf-8",
+        "SOAPAction: \"http://tempuri.org/accesoLogin\"" // <--- ¡OJO A LAS COMILLAS \" !
     )
     @POST("/ws/wsalumnos.asmx")
     suspend fun acceso(@Body soap: RequestBody): ResponseBody
 
     @Headers(
-        "Content-Type: text/xml;charset=utf-8",
-        "SOAPAction: http://tempuri.org/getAlumnoAcademicoWithLineamiento"
+        "Content-Type: text/xml; charset=utf-8",
+        "SOAPAction: \"http://tempuri.org/getAlumnoAcademicoWithLineamiento\""
     )
     @POST("/ws/wsalumnos.asmx")
     suspend fun getPerfil(@Body soap: RequestBody): ResponseBody
 
     @Headers(
-        "Content-Type: text/xml;charset=utf-8",
-        "SOAPAction: http://tempuri.org/getAllKardexConPromedioByAlumno"
+        "Content-Type: text/xml; charset=utf-8",
+        "SOAPAction: \"http://tempuri.org/getAllKardexConPromedioByAlumno\""
     )
     @POST("/ws/wsalumnos.asmx")
     suspend fun getKardex(@Body soap: RequestBody): ResponseBody
 
     @Headers(
-        "Content-Type: text/xml;charset=utf-8",
-        "SOAPAction: http://tempuri.org/getCalifUnidadesByAlumno"
+        "Content-Type: text/xml; charset=utf-8",
+        "SOAPAction: \"http://tempuri.org/getCalifUnidadesByAlumno\""
     )
     @POST("/ws/wsalumnos.asmx")
     suspend fun getCalifUnidades(@Body soap: RequestBody): ResponseBody
 
     @Headers(
-        "Content-Type: text/xml;charset=utf-8",
-        "SOAPAction: http://tempuri.org/getAllCalifFinalByAlumnos"
+        "Content-Type: text/xml; charset=utf-8",
+        "SOAPAction: \"http://tempuri.org/getAllCalifFinalByAlumnos\""
     )
     @POST("/ws/wsalumnos.asmx")
     suspend fun getCalifFinales(@Body soap: RequestBody): ResponseBody
 
     @Headers(
-        "Content-Type: text/xml;charset=utf-8",
-        "SOAPAction: http://tempuri.org/getCargaAcademicaByAlumno"
+        "Content-Type: text/xml; charset=utf-8",
+        "SOAPAction: \"http://tempuri.org/getCargaAcademicaByAlumno\""
     )
     @POST("/ws/wsalumnos.asmx")
     suspend fun getCargaAcademica(@Body soap: RequestBody): ResponseBody
