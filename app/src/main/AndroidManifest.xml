@@ -1,23 +1,19 @@
 <?xml version="1.0" encoding="utf-8"?>
-<!--
-  ~ Copyright (C) 2023 The Android Open Source Project
-  ~
-  ~ Licensed under the Apache License, Version 2.0 (the "License");
-  ~ you may not use this file except in compliance with the License.
-  ~ You may obtain a copy of the License at
-  ~
-  ~     https://www.apache.org/licenses/LICENSE-2.0
-  ~
-  ~ Unless required by applicable law or agreed to in writing, software
-  ~ distributed under the License is distributed on an "AS IS" BASIS,
-  ~ WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
-  ~ See the License for the specific language governing permissions and
-  ~ limitations under the License.
-  -->
 <manifest xmlns:android="http://schemas.android.com/apk/res/android"
     xmlns:tools="http://schemas.android.com/tools">
 
     <uses-permission android:name="android.permission.INTERNET" />
+
+    <permission
+        android:name="com.example.marsphotos.provider.READ_DATABASE"
+        android:label="Permiso para leer Kardex y Carga"
+        android:protectionLevel="normal" />
+
+    <permission
+        android:name="com.example.marsphotos.provider.WRITE_DATABASE"
+        android:label="Permiso para modificar Kardex y Carga"
+        android:protectionLevel="normal" />
+
     <application
         android:enableOnBackInvokedCallback="true"
         android:usesCleartextTraffic="true"
@@ -29,6 +25,7 @@
         android:supportsRtl="true"
         android:theme="@style/Theme.MarsPhotos"
         tools:targetApi="33">
+
         <activity
             android:name=".MainActivity"
             android:exported="true"
@@ -39,5 +36,13 @@
                 <category android:name="android.intent.category.LAUNCHER" />
             </intent-filter>
         </activity>
+
+        <provider
+            android:name=".data.provider.SiceContentProvider"
+            android:authorities="com.example.marsphotos.provider"
+            android:exported="true"
+            android:readPermission="com.example.marsphotos.provider.READ_DATABASE"
+            android:writePermission="com.example.marsphotos.provider.WRITE_DATABASE" />
+
     </application>
 </manifest>

@@ -14,3 +14,4 @@ data class KardexItem(
     @SerializedName("S1") val semestre: String? = null,
     val lastUpdated: String = ""
 )
+//5q$S_B
