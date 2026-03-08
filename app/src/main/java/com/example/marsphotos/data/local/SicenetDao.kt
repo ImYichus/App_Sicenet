@@ -27,9 +27,6 @@ interface SicenetDao {
     @Query("DELETE FROM kardex")
     suspend fun deleteKardex()
 
-    @Query("SELECT * FROM kardex") // Cambia esto por el nombre real de tu tabla
-    fun getKardexCursor(): Cursor
-
     // --- CARGA ACADÉMICA ---
     @Insert(onConflict = OnConflictStrategy.REPLACE)
     suspend fun insertCarga(items: List<MateriaCarga>)
@@ -39,9 +36,6 @@ interface SicenetDao {
 
     @Query("DELETE FROM carga_academica")
     suspend fun deleteCarga()
-
-    @Query("SELECT * FROM carga_academica") // Cambia esto por el nombre real de tu tabla
-    fun getCargaCursor(): Cursor
 
     // --- CALIFICACIONES PARCIALES ---
     @Insert(onConflict = OnConflictStrategy.REPLACE)
@@ -65,10 +59,10 @@ interface SicenetDao {
 
     // --- CONSULTAS PARA EL CONTENT PROVIDER ---
     @Query("SELECT * FROM kardex")
-    fun getKardexCursor(): android.database.Cursor
+    fun getKardexCursor(): Cursor
 
     @Query("SELECT * FROM carga_academica")
-    fun getCargaCursor(): android.database.Cursor
+    fun getCargaCursor(): Cursor
 
     // --- FUNCIONES DE SINCRONIZACIÓN (EVITA DUPLICADOS) ---
     // Estas funciones aseguran que la tabla se limpie antes de insertar lo nuevo
@@ -96,6 +90,4 @@ interface SicenetDao {
         deleteFinales()
         insertFinales(items)
     }
-
-
 }
