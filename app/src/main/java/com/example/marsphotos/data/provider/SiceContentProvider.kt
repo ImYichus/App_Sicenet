@@ -9,7 +9,6 @@ import com.example.marsphotos.data.local.SicenetDatabase // Importa tu clase de 
 
 class SiceContentProvider : ContentProvider() {
 
-    // Identificadores para el UriMatcher
     private val KARDEX = 100
     private val CARGA_ACADEMICA = 200
 
