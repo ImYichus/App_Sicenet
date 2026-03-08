@@ -18,12 +18,17 @@
     xmlns:tools="http://schemas.android.com/tools">
 
     <uses-permission android:name="android.permission.INTERNET" />
+
     <permission
         android:name="com.example.marsphotos.provider.READ_DATABASE"
+        android:label="Permiso para leer Kardex y Carga"
         android:protectionLevel="normal" />
+
     <permission
         android:name="com.example.marsphotos.provider.WRITE_DATABASE"
+        android:label="Permiso para modificar Kardex y Carga"
         android:protectionLevel="normal" />
+
     <application
         android:enableOnBackInvokedCallback="true"
         android:usesCleartextTraffic="true"
@@ -47,10 +52,11 @@
         </activity>
 
         <provider
-            android:name=".provider.SicenetProvider"
+            android:name=".data.provider.SiceContentProvider"
             android:authorities="com.example.marsphotos.provider"
             android:exported="true"
             android:readPermission="com.example.marsphotos.provider.READ_DATABASE"
             android:writePermission="com.example.marsphotos.provider.WRITE_DATABASE" />
+
     </application>
 </manifest>

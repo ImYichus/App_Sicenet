@@ -1,5 +1,6 @@
 package com.example.marsphotos.data.local
 
+import android.database.Cursor
 import androidx.room.*
 import com.example.marsphotos.model.*
 
@@ -26,6 +27,9 @@ interface SicenetDao {
     @Query("DELETE FROM kardex")
     suspend fun deleteKardex()
 
+    @Query("SELECT * FROM kardex") // Cambia esto por el nombre real de tu tabla
+    fun getKardexCursor(): Cursor
+
     // --- CARGA ACADÉMICA ---
     @Insert(onConflict = OnConflictStrategy.REPLACE)
     suspend fun insertCarga(items: List<MateriaCarga>)
@@ -35,6 +39,9 @@ interface SicenetDao {
 
     @Query("DELETE FROM carga_academica")
     suspend fun deleteCarga()
+
+    @Query("SELECT * FROM carga_academica") // Cambia esto por el nombre real de tu tabla
+    fun getCargaCursor(): Cursor
 
     // --- CALIFICACIONES PARCIALES ---
     @Insert(onConflict = OnConflictStrategy.REPLACE)
