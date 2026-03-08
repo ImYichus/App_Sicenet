@@ -31,14 +31,14 @@ class DefaultAppContainer(private val applicationContext: Context) : AppContaine
         SicenetDatabase.getDatabase(applicationContext)
     }
 
-    // --- 2. CLIENTE HTTP (Agregamos TIMEOUTS) ---
+    // --- 2. CLIENTE HTTP ---
     private val client: OkHttpClient by lazy {
         OkHttpClient.Builder()
             .addInterceptor(AddCookiesInterceptor(applicationContext))
             .addInterceptor(ReceivedCookiesInterceptor(applicationContext))
-            .connectTimeout(60, TimeUnit.SECONDS) // 30 segundos de paciencia para conectar
-            .readTimeout(60, TimeUnit.SECONDS)    // 30 segundos para recibir datos
-            .writeTimeout(60, TimeUnit.SECONDS)   // 30 segundos para enviar datos
+            .connectTimeout(120, TimeUnit.SECONDS) // 30 segundos de paciencia para conectar
+            .readTimeout(120, TimeUnit.SECONDS)    // 30 segundos para recibir datos
+            .writeTimeout(120, TimeUnit.SECONDS)   // 30 segundos para enviar datos
             .build()
     }
 

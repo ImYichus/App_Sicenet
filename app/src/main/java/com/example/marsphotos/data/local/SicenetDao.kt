@@ -56,6 +56,13 @@ interface SicenetDao {
     @Query("DELETE FROM finales")
     suspend fun deleteFinales()
 
+    // --- CONSULTAS PARA EL CONTENT PROVIDER ---
+    @Query("SELECT * FROM kardex")
+    fun getKardexCursor(): android.database.Cursor
+
+    @Query("SELECT * FROM carga_academica")
+    fun getCargaCursor(): android.database.Cursor
+
     // --- FUNCIONES DE SINCRONIZACIÓN (EVITA DUPLICADOS) ---
     // Estas funciones aseguran que la tabla se limpie antes de insertar lo nuevo
 
@@ -82,4 +89,6 @@ interface SicenetDao {
         deleteFinales()
         insertFinales(items)
     }
+
+
 }

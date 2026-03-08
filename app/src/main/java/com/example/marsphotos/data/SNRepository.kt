@@ -122,7 +122,7 @@ class NetworSNRepository(
 
 class DBLocalSNRepository(private val dao: SicenetDao) : SNRepository {
 
-    // --- Red (Ignorar en Local) ---
+    // --- Red---
     override suspend fun acceso(m: String, p: String, t: String): String = ""
     override suspend fun accesoObjeto(m: String, p: String): Usuario = Usuario("")
     override suspend fun profile(m: String, p: String): ProfileStudent = throw NotImplementedError()
@@ -134,7 +134,7 @@ class DBLocalSNRepository(private val dao: SicenetDao) : SNRepository {
     override suspend fun getCalificacionesFinales(modoEducativo: Int): List<CalificacionFinal> = dao.getFinales()
     override suspend fun getCargaAcademica(): List<MateriaCarga> = dao.getCarga()
 
-    // --- Inserciones Locales (USANDO SYNC PARA EVITAR REPETIDOS) ---
+    // --- Inserciones Locales---
     override suspend fun insertPerfil(perfil: ProfileStudent) {
         dao.deletePerfil() // Aseguramos que solo haya un perfil
         dao.insertPerfil(perfil)
